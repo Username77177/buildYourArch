@@ -2,7 +2,44 @@
 
 Так как я довольно давно уже сижу на Arch Linux, я решил поделиться моими конфигами и настроками.
 
-[TOC]
+{TOC}
+- [Настройка Arch Linux](#-arch-linux)
+  - [Как я устанавливаю Arch](#---arch)
+    - [Основные действия](#-)
+      - [1. Подключюсь к WiFi](#1---wifi)
+      - [2. Создаю разделы на диске](#2----)
+      - [3. Форматирование разделов](#3--)
+      - [4. Монтирую разделы](#4--)
+      - [5. Качаю пакеты в раздел root](#5-----root)
+    - [Дополнительные действия](#-)
+      - [6.1. Добавить нового юзера](#61---)
+      - [6.2. Добавить нового пользователя в группу *wheel*](#62------wheel)
+        - [Качаем `sudo`](#-sudo)
+        - [Добавляем пользователя в группу wheel](#----wheel)
+      - [6.3. Устанавливаю локаль](#63--)
+      - [6.4. Установка времени](#64--)
+      - [6.5. Устанавливаю X](#65--x)
+      - [6.6. Устанавливаю KDE + пакеты](#66--kde--)
+      - [6.7. Устанавливаю GRUB](#67--grub)
+    - [7. Перезагружаю Arch](#7--arch)
+  - [Первоначальная настройка](#-)
+    - [Тачпад](#)
+    - [Xresources](#xresources)
+    - [Локали](#)
+    - [tty](#tty)
+  - [Установка основного софта](#--)
+    - [Приверженник Flatpak](#-flatpak)
+    - [GUI-приложения](#gui-)
+    - [CLI-приложения](#cli-)
+  - [Конфигурация](#)
+    - [Neovim](#neovim)
+    - [TaskWarrior](#taskwarrior)
+    - [Kitty](#kitty)
+    - [Fish + OhMyFish](#fish--ohmyfish)
+    - [Cmus](#cmus)
+    - [Zathura](#zathura)
+    - [i3-gaps](#i3-gaps)
+    - [tmux](#tmux)
 
 ## Как я устанавливаю Arch
 
@@ -20,10 +57,11 @@
 6. Твикаю рут
    1. Добавить нового пользователя
    2. Добавить пользователя в группу wheel
-   3. Установить локаль
-   4. Установить время
-   5. Установить X
-   6. Установаить KDE
+   3. Устанавливаю локаль
+   4. Устанавливаю время
+   5. Устанавливаю X
+   6. Устанавливаю KDE
+   7. Устанавливаю GRUB2
 7. Перезагрузить Arch
 
 #### 1. Подключюсь к WiFi
@@ -78,6 +116,7 @@ swapon /dev/sda3 # Включаю подкачку
 mount /dev/sda1 /mnt # Монтирую рут
 mkdir -p /mnt/home # Создаю папку для домашнего раздела
 mount dev/sda2 /mnt/home # Монтирую домашний раздел
+cp install.txt /mnt/ # Копирую гайд с установкой на всякий случай
 ```
 
 #### 5. Качаю пакеты в раздел root
@@ -96,6 +135,8 @@ pacstrap /mnt linux linux-firmware base base-devel
 useradd (ваш никнейм)
 passwd (ваш никнейм)
 ```
+
+
 
 #### 6.2. Добавить нового пользователя в группу *wheel*
 
@@ -121,6 +162,75 @@ groupmems -g wheel -a (ваш никнейм)
 ```
 
 
+
+#### 6.3. Устанавливаю локаль
+
+В `/etc/locale.gen` удаляю символ `#` из строки  **#en_US.UTF-8**, затем ввожу:
+
+```bash
+locale-gen
+```
+
+А потом ввожу: `locale > /etc/locale.conf`
+
+Данные действия просто записывают настройки локали с систему. `locale > /etc/locale.conf` перезаписывает дефолтные локали на новые.
+
+
+
+#### 6.4. Установка времени
+
+Линкую файлик с нужным мне регионом к /etc/localtime
+
+```bash
+ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
+hw-clock --sys-to-hc # Синхронизирую время
+```
+
+
+
+#### 6.5. Устанавливаю X
+
+```bash
+sudo pacman -Syy xorg xclip xorg-xinit
+```
+
+
+
+#### 6.6. Устанавливаю KDE + пакеты
+
+```bash
+sudo pacman -Sy plasma firefox grub neovim cmake dolphin ark kitty
+```
+
+
+
+#### 6.7. Устанавливаю GRUB
+
+```bash
+sudo pacman -Sy grub
+sudo pacman -S linux # На всякий случай переустанавливаю ядро
+# У меня система с UEFI, поэтому я примонтирую с UEFI от Windows 10 и установлю grub туда
+mkdir -p /boot/efi && mount /dev/sda2 /boot/efi
+grub-install --target=x86_64-efi --boot-directory=/boot/efi
+```
+
+Твикаем конфигурацию **GRUB**, чтобы *не* видеть splashscreen (загрузочный экран). Удаляем `quiet splash` из `/etc/default/grub`
+
+```bash
+GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3"
+```
+
+ Затем обновляем конфигурацию **GRUB**:
+
+```bash
+grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+
+
+### 7. Перезагружаю Arch
+
+Нажимаем `Ctrl + D` и пишем `reboot`.
 
 ## Первоначальная настройка
 
@@ -2047,3 +2157,4 @@ setw -g window-status-current-format "#[bg=#282828,fg=#3c3836] #[bg=default] 
 #setw -g window-status-format '#[fg=colour235,bg=colour235,nobold,nounderscore,noitalics]#[default] #I  #W #[fg=colour235,bg=colour235,nobold,nounderscore,noitalics]'
 #setw -g window-status-current-format '#[fg=colour235,bg=colour238,nobold,nounderscore,noitalics]#[fg=colour222,bg=colour238] #I  #W  #F #[fg=colour238,bg=colour235,nobold,nounderscore,noitalics]'
 ```
+
